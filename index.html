@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Meu Bolso AI" />
+  <title>Meu Bolso AI</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone para JSX no navegador -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      background-color: #060913;
+    }
+    input, select, textarea {
+      user-select: auto;
+    }
+    .pt-safe { padding-top: env(safe-area-inset-top, 24px); }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 24px); }
+  </style>
+</head>
+<body class="text-slate-100 antialiased selection:bg-emerald-500 selection:text-black">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // --- ÍCONES SVG NATIVOS ---
+    const WalletIcon = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+      </svg>
+    );
+
+    const SettingsIcon = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    );
+
+    const EyeIcon = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    );
+
+    const EyeOffIcon = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+      </svg>
+    );
+
+    const PieChartIcon = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+      </svg>
+    );
+
+    const ReceiptIcon = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+      </svg>
+    );
+
+    const PiggyIcon = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg>
+    );
+
+    const BotIcon = ({ className = "w-5 h-5" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    );
+
+    const PlusIcon = ({ className = "w-6 h-6" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+    );
+
+    const TrashIcon = ({ className = "w-4 h-4" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+    );
+
+    const EditIcon = ({ className = "w-4 h-4" }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+    );
+
+    // --- CATEGORIAS & CORES ---
+    const CATEGORIES = {
+      Alimentacao: { name: 'Alimentação', color: '#10b981' },
+      Transporte: { name: 'Transporte', color: '#f59e0b' },
+      Moradia: { name: 'Moradia / Contas', color: '#3b82f6' },
+      Lazer: { name: 'Lazer & Cultura', color: '#a855f7' },
+      Saude: { name: 'Saúde & Bem-estar', color: '#ec4899' },
+      Outros: { name: 'Outros', color: '#06b6d4' }
+    };
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('resumo');
+      const [privacyMode, setPrivacyMode] = useState(false);
+      const [monthlyIncome, setMonthlyIncome] = useState(() => {
+        const saved = localStorage.getItem('bolso_income');
+        return saved ? parseFloat(saved) : 2300;
+      });
+
+      const [transactions, setTransactions] = useState(() => {
+        const saved = localStorage.getItem('bolso_transactions');
+        return saved ? JSON.parse(saved) : [
+          { id: 1, desc: 'Supermercado', amount: 350, type: 'expense', category: 'Alimentacao', date: '2026-10-10' },
+          { id: 2, desc: 'Transporte Público', amount: 150, type: 'expense', category: 'Transporte', date: '2026-10-11' },
+          { id: 3, desc: 'Cinema & Lazer', amount: 100, type: 'expense', category: 'Lazer', date: '2026-10-12' },
+        ];
+      });
+
+      const [goals, setGoals] = useState(() => {
+        const saved = localStorage.getItem('bolso_goals');
+        return saved ? JSON.parse(saved) : [
+          { id: 1, name: 'Reserva de Emergência', target: 5000, current: 2200, emoji: '🛡️', color: '#10b981' },
+          { id: 2, name: 'Viagem de Férias', target: 3000, current: 850, emoji: '✈️', color: '#3b82f6' },
+          { id: 3, name: 'Novo iPhone', target: 7000, current: 3500, emoji: '📱', color: '#a855f7' }
+        ];
+      });
+
+      // Modais
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [showSettingsModal, setShowSettingsModal] = useState(false);
+      const [showGoalModal, setShowGoalModal] = useState(false);
+      const [editingGoal, setEditingGoal] = useState(null);
+      const [showDepositModal, setShowDepositModal] = useState(false);
+      const [selectedGoalForDeposit, setSelectedGoalForDeposit] = useState(null);
+      const [depositAmount, setDepositAmount] = useState('');
+      const [depositType, setDepositType] = useState('deposit');
+
+      // Form Transação
+      const [newDesc, setNewDesc] = useState('');
+      const [newAmount, setNewAmount] = useState('');
+      const [newType, setNewType] = useState('expense');
+      const [newCategory, setNewCategory] = useState('Alimentacao');
+
+      // Gráfico Donut Selecionado
+      const [selectedCategory, setSelectedCategory] = useState(null);
+
+      // Persistência Local
+      useEffect(() => {
+        localStorage.setItem('bolso_income', monthlyIncome.toString());
+      }, [monthlyIncome]);
+
+      useEffect(() => {
+        localStorage.setItem('bolso_transactions', JSON.stringify(transactions));
+      }, [transactions]);
+
+      useEffect(() => {
+        localStorage.setItem('bolso_goals', JSON.stringify(goals));
+      }, [goals]);
+
+      // Totais
+      const totalExpense = useMemo(() => {
+        return transactions
+          .filter(t => t.type === 'expense')
+          .reduce((acc, curr) => acc + curr.amount, 0);
+      }, [transactions]);
+
+      const availableBalance = monthlyIncome - totalExpense;
+      const savedPercent = monthlyIncome > 0 ? Math.max(0, Math.round((availableBalance / monthlyIncome) * 100)) : 0;
+
+      // Agrupamento por Categoria
+      const categoryData = useMemo(() => {
+        const map = {};
+        Object.keys(CATEGORIES).forEach(k => { map[k] = 0; });
+        transactions.forEach(t => {
+          if (t.type === 'expense') {
+            map[t.category] = (map[t.category] || 0) + t.amount;
+          }
+        });
+        return Object.keys(map).map(catKey => ({
+          key: catKey,
+          label: CATEGORIES[catKey].name,
+          color: CATEGORIES[catKey].color,
+          value: map[catKey]
+        })).filter(c => c.value > 0);
+      }, [transactions]);
+
+      // Fatias do Donut
+      const donutSlices = useMemo(() => {
+        if (totalExpense === 0) return [];
+        let cumulative = 0;
+        const radius = 64;
+        const circumference = 2 * Math.PI * radius;
+
+        return categoryData.map(c => {
+          const percentage = c.value / totalExpense;
+          const strokeDasharray = `${percentage * circumference} ${circumference}`;
+          const strokeDashoffset = -cumulative * circumference;
+          cumulative += percentage;
+          return {
+            ...c,
+            strokeDasharray,
+            strokeDashoffset,
+            percentage: Math.round(percentage * 100)
+          };
+        });
+      }, [categoryData, totalExpense]);
+
+      // Handlers
+      const handleAddTransaction = (e) => {
+        e.preventDefault();
+        const amt = parseFloat(newAmount);
+        if (!amt || isNaN(amt) || !newDesc.trim()) return;
+
+        const newTx = {
+          id: Date.now(),
+          desc: newDesc.trim(),
+          amount: amt,
+          type: newType,
+          category: newType === 'expense' ? newCategory : 'Outros',
+          date: new Date().toISOString().split('T')[0]
+        };
+
+        setTransactions([newTx, ...transactions]);
+        setNewDesc('');
+        setNewAmount('');
+        setShowAddModal(false);
+      };
+
+      const handleDeleteTransaction = (id) => {
+        setTransactions(transactions.filter(t => t.id !== id));
+      };
+
+      const handleSaveGoal = (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const name = form.goalName.value.trim();
+        const target = parseFloat(form.goalTarget.value);
+        const current = parseFloat(form.goalCurrent.value) || 0;
+        const emoji = form.goalEmoji.value || '🎯';
+        const color = form.goalColor.value || '#10b981';
+
+        if (!name || isNaN(target) || target <= 0) return;
+
+        if (editingGoal) {
+          setGoals(goals.map(g => g.id === editingGoal.id ? { ...g, name, target, current, emoji, color } : g));
+        } else {
+          setGoals([...goals, { id: Date.now(), name, target, current, emoji, color }]);
+        }
+        setShowGoalModal(false);
+        setEditingGoal(null);
+      };
+
+      const handleDeleteGoal = (id) => {
+        setGoals(goals.filter(g => g.id !== id));
+      };
+
+      const handleDepositAction = (e) => {
+        e.preventDefault();
+        const amt = parseFloat(depositAmount);
+        if (!amt || isNaN(amt) || !selectedGoalForDeposit) return;
+
+        setGoals(goals.map(g => {
+          if (g.id === selectedGoalForDeposit.id) {
+            const nextVal = depositType === 'deposit' ? g.current + amt : Math.max(0, g.current - amt);
+            return { ...g, current: nextVal };
+          }
+          return g;
+        }));
+
+        setDepositAmount('');
+        setShowDepositModal(false);
+        setSelectedGoalForDeposit(null);
+      };
+
+      const formatBRL = (val) => {
+        if (privacyMode) return '••••••';
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+      };
+
+      return (
+        <div className="flex justify-center min-h-screen bg-[#060913] font-sans">
+          <div className="w-full max-w-md bg-[#0a0f1d] min-h-screen flex flex-col relative pb-28 pt-safe shadow-2xl">
+            
+            {/* CABEÇALHO */}
+            <header className="px-5 pt-3 pb-4 flex items-center justify-between border-b border-slate-800/40">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
+                  <WalletIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+                    Meu Bolso AI
+                  </h1>
+                  <p className="text-xs text-slate-400 font-medium">Controle Inteligente</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setPrivacyMode(!privacyMode)} 
+                  className="w-10 h-10 rounded-xl bg-[#131b2e] border border-slate-800/80 flex items-center justify-center text-slate-400 hover:text-white transition"
+                  title="Ocultar Valores"
+                >
+                  {privacyMode ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+                <button 
+                  onClick={() => setShowSettingsModal(true)} 
+                  className="w-10 h-10 rounded-xl bg-[#131b2e] border border-slate-800/80 flex items-center justify-center text-slate-400 hover:text-white transition"
+                  title="Configurar Renda"
+                >
+                  <SettingsIcon />
+                </button>
+              </div>
+            </header>
+
+            {/* CONTEÚDO PRINCIPAL */}
+            <main className="flex-1 px-5 pt-4 space-y-4 overflow-y-auto">
+
+              {/* ABA 1: RESUMO */}
+              {activeTab === 'resumo' && (
+                <>
+                  {/* CARD DISPONÍVEL NO MÊS */}
+                  <div className="bg-[#131b2e] border border-slate-800/60 rounded-3xl p-5 shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                        Disponível no Mês
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-500/30">
+                        {savedPercent}% guardado
+                      </span>
+                    </div>
+
+                    <div className="text-3xl font-extrabold text-emerald-400 tracking-tight my-1">
+                      {formatBRL(availableBalance)}
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[11px] text-slate-400 block font-medium">Renda Mensal</span>
+                        <span className="text-sm font-bold text-white mt-0.5 block">
+                          {formatBRL(monthlyIncome)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-slate-400 block font-medium">Total Gasto</span>
+                        <span className="text-sm font-bold text-rose-400 mt-0.5 block">
+                          {formatBRL(totalExpense)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CARD DE GASTOS POR CATEGORIA COM DONUT */}
+                  <div className="bg-[#131b2e] border border-slate-800/60 rounded-3xl p-5 shadow-xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-sm font-bold text-slate-200">Gastos por Categoria</h2>
+                      <PieChartIcon className="w-4 h-4 text-slate-500" />
+                    </div>
+
+                    {/* GRÁFICO DONUT */}
+                    <div className="relative flex justify-center items-center py-2">
+                      <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 160 160">
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r="64"
+                          fill="transparent"
+                          stroke="#1a243b"
+                          strokeWidth="20"
+                        />
+                        {donutSlices.map((slice) => (
+                          <circle
+                            key={slice.key}
+                            cx="80"
+                            cy="80"
+                            r="64"
+                            fill="transparent"
+                            stroke={slice.color}
+                            strokeWidth={selectedCategory?.key === slice.key ? "24" : "20"}
+                            strokeDasharray={slice.strokeDasharray}
+                            strokeDashoffset={slice.strokeDashoffset}
+                            className="transition-all duration-300 cursor-pointer"
+                            onClick={() => setSelectedCategory(selectedCategory?.key === slice.key ? null : slice)}
+                          />
+                        ))}
+                      </svg>
+
+                      {/* TEXTO DENTRO DO ANEL */}
+                      <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none px-2">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                          {selectedCategory ? selectedCategory.label : 'Total Gasto'}
+                        </span>
+                        <span className="text-base font-extrabold text-white">
+                          {formatBRL(selectedCategory ? selectedCategory.value : totalExpense)}
+                        </span>
+                        {selectedCategory && (
+                          <span className="text-[10px] font-bold text-emerald-400 mt-0.5">
+                            {selectedCategory.percentage}% dos gastos
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* BOTÕES DE LEGENDA */}
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      {categoryData.length === 0 ? (
+                        <p className="text-xs text-slate-500 col-span-2 text-center py-2">Nenhum gasto registrado neste mês.</p>
+                      ) : (
+                        categoryData.map((cat) => (
+                          <button
+                            key={cat.key}
+                            onClick={() => setSelectedCategory(selectedCategory?.key === cat.key ? null : cat)}
+                            className={`flex items-center gap-2 p-2 rounded-xl text-left transition border ${
+                              selectedCategory?.key === cat.key
+                                ? 'bg-slate-800/80 border-slate-700'
+                                : 'bg-[#0f172a]/60 border-slate-800/40 hover:bg-slate-800/40'
+                            }`}
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                            <span className="text-[11px] font-medium text-slate-300 truncate">{cat.label}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CARD DE INSIGHT DO ASSISTENTE */}
+                  <div className="bg-gradient-to-r from-emerald-950/40 to-[#131b2e] border border-emerald-500/20 rounded-2xl p-4 flex items-start gap-3">
+                    <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 shrink-0">
+                      <BotIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-emerald-400">Insight do Assistente</h3>
+                      <p className="text-[12px] text-slate-300 mt-0.5 leading-relaxed">
+                        {savedPercent > 50
+                          ? `Excelente! Você já economizou ${savedPercent}% do seu orçamento. Considere aplicar parte nas metas do Cofrinho.`
+                          : `Atenção: Você já comprometeu ${100 - savedPercent}% da sua renda. Evite novos gastos em Lazer nos próximos dias.`}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ABA 2: EXTRATO */}
+              {activeTab === 'extrato' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-1">
+                    <h2 className="text-base font-bold text-white">Histórico de Transações</h2>
+                    <span className="text-xs text-slate-400">{transactions.length} registros</span>
+                  </div>
+
+                  {transactions.length === 0 ? (
+                    <div className="text-center py-12 text-slate-500 text-sm">
+                      Nenhuma transação registrada. Toque no botão verde (+) para adicionar.
+                    </div>
+                  ) : (
+                    transactions.map((tx) => (
+                      <div key={tx.id} className="bg-[#131b2e] border border-slate-800/60 rounded-2xl p-3.5 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm"
+                            style={{ 
+                              backgroundColor: tx.type === 'expense' ? `${CATEGORIES[tx.category]?.color}20` : '#10b98120',
+                              color: tx.type === 'expense' ? CATEGORIES[tx.category]?.color : '#10b981'
+                            }}
+                          >
+                            {tx.type === 'expense' ? '−' : '+'}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-white">{tx.desc}</div>
+                            <div className="text-[11px] text-slate-400">
+                              {CATEGORIES[tx.category]?.name || 'Geral'} • {tx.date}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className={`text-sm font-bold ${tx.type === 'expense' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {tx.type === 'expense' ? '- ' : '+ '}{formatBRL(tx.amount)}
+                          </span>
+                          <button 
+                            onClick={() => handleDeleteTransaction(tx.id)}
+                            className="text-slate-500 hover:text-rose-400 p-1"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* ABA 3: COFRINHO */}
+              {activeTab === 'cofrinho' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-bold text-white">Metas & Poupança</h2>
+                      <p className="text-xs text-slate-400">Acompanhe seus objetivos</p>
+                    </div>
+                    <button
+                      onClick={() => { setEditingGoal(null); setShowGoalModal(true); }}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-bold hover:bg-emerald-400 transition"
+                    >
+                      + Nova Meta
+                    </button>
+                  </div>
+
+                  {goals.map((goal) => {
+                    const progress = Math.min(100, Math.round((goal.current / goal.target) * 100));
+                    return (
+                      <div key={goal.id} className="bg-[#131b2e] border border-slate-800/60 rounded-3xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-2xl">{goal.emoji}</span>
+                            <div>
+                              <h3 className="text-sm font-bold text-white">{goal.name}</h3>
+                              <span className="text-xs text-slate-400">{progress}% concluído</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => { setEditingGoal(goal); setShowGoalModal(true); }}
+                              className="p-1.5 text-slate-400 hover:text-white"
+                            >
+                              <EditIcon />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteGoal(goal.id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-400"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Barra de Progresso */}
+                        <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all duration-500" 
+                            style={{ width: `${progress}%`, backgroundColor: goal.color }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-1">
+                          <span className="font-semibold text-slate-300">
+                            Atual: <span className="text-white font-bold">{formatBRL(goal.current)}</span>
+                          </span>
+                          <span className="text-slate-400">Alvo: {formatBRL(goal.target)}</span>
+                        </div>
+
+                        {/* Botões de Aporte e Resgate */}
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                          <button
+                            onClick={() => { setSelectedGoalForDeposit(goal); setDepositType('deposit'); setShowDepositModal(true); }}
+                            className="py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-500/20"
+                          >
+                            + Guardar
+                          </button>
+                          <button
+                            onClick={() => { setSelectedGoalForDeposit(goal); setDepositType('withdraw'); setShowDepositModal(true); }}
+                            className="py-1.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold hover:bg-slate-700"
+                          >
+                            - Resgatar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ABA 4: AI BOT */}
+              {activeTab === 'bot' && (
+                <div className="space-y-4">
+                  <div className="bg-[#131b2e] border border-slate-800/60 rounded-3xl p-5 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <BotIcon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-white">Consultor Virtual</h2>
+                        <span className="text-xs text-emerald-400">● Análise financeira ativa</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-[#0a0f1d] rounded-2xl border border-slate-800 text-xs text-slate-300 leading-relaxed space-y-2">
+                      <p>Olá! Analisei as suas finanças deste mês:</p>
+                      <ul className="list-disc pl-4 space-y-1 text-slate-400">
+                        <li>Renda: <strong className="text-white">{formatBRL(monthlyIncome)}</strong></li>
+                        <li>Gastos totais: <strong className="text-rose-400">{formatBRL(totalExpense)}</strong></li>
+                        <li>Sobra estimada: <strong className="text-emerald-400">{formatBRL(availableBalance)}</strong></li>
+                      </ul>
+                      <p className="text-emerald-300 pt-1">
+                        💡 <strong>Dica da IA:</strong> Você tem {savedPercent}% de margem livre. Se mantiver seus gastos controlados até o fim do mês, conseguirá guardar mais de R$ 1.500 no seu Cofrinho!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </main>
+
+            {/* BOTÃO FLUTUANTE DE NOVO LANÇAMENTO (+) */}
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="absolute right-5 bottom-20 w-12 h-12 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/30 hover:scale-105 active:scale-95 transition z-20"
+              title="Nova Transação"
+            >
+              <PlusIcon />
+            </button>
+
+            {/* BARRA INFERIOR DE ABAS (TAB BAR) */}
+            <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#0a0f1d]/95 backdrop-blur-md border-t border-slate-800/60 px-4 py-2 flex justify-around items-center z-10 pb-safe">
+              {[
+                { id: 'resumo', label: 'Resumo', icon: PieChartIcon },
+                { id: 'extrato', label: 'Extrato', icon: ReceiptIcon },
+                { id: 'cofrinho', label: 'Cofrinho', icon: PiggyIcon },
+                { id: 'bot', label: 'AI Bot', icon: BotIcon }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition ${
+                      isActive ? 'text-emerald-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[10px]">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* MODAL: ADICIONAR TRANSAÇÃO */}
+            {showAddModal && (
+              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-[#131b2e] border border-slate-800 rounded-3xl p-5 w-full max-w-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold text-white">Novo Lançamento</h3>
+                    <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white text-lg">✕</button>
+                  </div>
+
+                  <form onSubmit={handleAddTransaction} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2 bg-[#0a0f1d] p-1 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setNewType('expense')}
+                        className={`py-1.5 rounded-lg text-xs font-bold transition ${newType === 'expense' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-400'}`}
+                      >
+                        Despesa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewType('income')}
+                        className={`py-1.5 rounded-lg text-xs font-bold transition ${newType === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400'}`}
+                      >
+                        Receita
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Descrição</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Almoço, Salário, Farmácia"
+                        value={newDesc}
+                        onChange={(e) => setNewDesc(e.target.value)}
+                        className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Valor (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="0,00"
+                        value={newAmount}
+                        onChange={(e) => setNewAmount(e.target.value)}
+                        className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {newType === 'expense' && (
+                      <div>
+                        <label className="text-[11px] text-slate-400 block mb-1">Categoria</label>
+                        <select
+                          value={newCategory}
+                          onChange={(e) => setNewCategory(e.target.value)}
+                          className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        >
+                          {Object.keys(CATEGORIES).map(k => (
+                            <option key={k} value={k}>{CATEGORIES[k].name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-emerald-400 text-slate-950 font-bold text-sm hover:bg-emerald-300 transition mt-2"
+                    >
+                      Confirmar
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL: AJUSTAR RENDA */}
+            {showSettingsModal && (
+              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-[#131b2e] border border-slate-800 rounded-3xl p-5 w-full max-w-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold text-white">Configurar Renda</h3>
+                    <button onClick={() => setShowSettingsModal(false)} className="text-slate-400 hover:text-white text-lg">✕</button>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">Renda Mensal Base (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      defaultValue={monthlyIncome}
+                      onChange={(e) => setMonthlyIncome(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setShowSettingsModal(false)}
+                    className="w-full py-2.5 rounded-xl bg-emerald-400 text-slate-950 font-bold text-sm hover:bg-emerald-300 transition"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL: CRIAR / EDITAR META */}
+            {showGoalModal && (
+              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-[#131b2e] border border-slate-800 rounded-3xl p-5 w-full max-w-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold text-white">
+                      {editingGoal ? 'Editar Meta' : 'Nova Meta'}
+                    </h3>
+                    <button onClick={() => setShowGoalModal(false)} className="text-slate-400 hover:text-white text-lg">✕</button>
+                  </div>
+
+                  <form onSubmit={handleSaveGoal} className="space-y-3">
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Nome da Meta</label>
+                      <input
+                        type="text"
+                        name="goalName"
+                        required
+                        defaultValue={editingGoal?.name || ''}
+                        placeholder="Ex: Viagem, Carro, Fundo"
+                        className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-slate-400 block mb-1">Valor Alvo (R$)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="goalTarget"
+                          required
+                          defaultValue={editingGoal?.target || ''}
+                          className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-slate-400 block mb-1">Saldo Atual (R$)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="goalCurrent"
+                          defaultValue={editingGoal?.current || 0}
+                          className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-slate-400 block mb-1">Emoji</label>
+                        <input
+                          type="text"
+                          name="goalEmoji"
+                          defaultValue={editingGoal?.emoji || '🎯'}
+                          className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none text-center"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-slate-400 block mb-1">Cor</label>
+                        <select
+                          name="goalColor"
+                          defaultValue={editingGoal?.color || '#10b981'}
+                          className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                        >
+                          <option value="#10b981">Verde</option>
+                          <option value="#3b82f6">Azul</option>
+                          <option value="#a855f7">Roxo</option>
+                          <option value="#f59e0b">Laranja</option>
+                          <option value="#ec4899">Rosa</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-emerald-400 text-slate-950 font-bold text-sm hover:bg-emerald-300 transition mt-2"
+                    >
+                      Salvar Meta
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL: GUARDAR / RESGATAR DE COFRINHO */}
+            {showDepositModal && selectedGoalForDeposit && (
+              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="bg-[#131b2e] border border-slate-800 rounded-3xl p-5 w-full max-w-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold text-white">
+                      {depositType === 'deposit' ? 'Guardar em' : 'Resgatar de'} {selectedGoalForDeposit.name}
+                    </h3>
+                    <button onClick={() => setShowDepositModal(false)} className="text-slate-400 hover:text-white text-lg">✕</button>
+                  </div>
+
+                  <form onSubmit={handleDepositAction} className="space-y-3">
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Valor (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="0,00"
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                        className="w-full bg-[#0a0f1d] border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className={`w-full py-2.5 rounded-xl font-bold text-sm transition mt-2 ${
+                        depositType === 'deposit' ? 'bg-emerald-400 text-slate-950 hover:bg-emerald-300' : 'bg-rose-500 text-white hover:bg-rose-600'
+                      }`}
+                    >
+                      Confirmar
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
